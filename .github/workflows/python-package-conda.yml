@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: '3.7'
     - name: Update conda library
-    - run: |
+      run: |
         conda update --all
     - name: Add conda to system path
       run: |
