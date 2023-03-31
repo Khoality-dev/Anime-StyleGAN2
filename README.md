@@ -1,4 +1,6 @@
-# StyleGAN 2 - Reimplmentation on Pytorch with friendly UI allowing to observe real-time training footstep
+# StyleGAN 2
+
+A reimplmentation of StyleGAN 2 in Pytorch with friendly UI allowing to observe real-time training footstep
 ## Requirements
 - CUDA 11.3 and CUDNN v8.2.0
 - Python 3.7.16
