@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt 
 import cv2
 import numpy as np
+import tkinter as tk
 
 def plot_multiple_vectors(v, figsize = (15,5), title = None, xlabel = None, ylabel = None, legends = None, save_path = None, show = False):
     plt.figure(figsize = figsize)
@@ -21,12 +22,12 @@ def plot_multiple_vectors(v, figsize = (15,5), title = None, xlabel = None, ylab
     else:
         plt.close()
 
-def display_img(img_list, save_path = None ,show = None):
+def process_display_image(img_list):
     n = len(img_list)
     img_list = list(np.array(img_list).astype(np.uint8))
     size = int(np.sqrt(n))
     cnt = 0
-    vertical = None
+    out_image = None
     for i in range(size):
         temp = img_list[cnt]
         cnt += 1
@@ -34,13 +35,22 @@ def display_img(img_list, save_path = None ,show = None):
             temp = np.hstack((temp,img_list[cnt]))
             cnt += 1
         if i==0:
-            vertical = temp.copy()
+            out_image = temp.copy()
         else:
-            vertical = np.vstack((vertical,temp.copy()))
+            out_image = np.vstack((out_image, temp.copy()))
+    return out_image
+
+def display_img(img_list, save_path = None, show = False):
     
-    if show!=None:
-        cv2.imshow('Preview', vertical)
-        cv2.waitKey(show)
+    image = process_display_image(img_list)
+    root = tk.Tk()
+    resolution = min(root.winfo_screenwidth(), root.winfo_screenheight())
+    header_size = 100
+    image = cv2.resize(image, (resolution - header_size, resolution - header_size))
+
+    if show:
+        cv2.imshow('Preview', image)
+        cv2.waitKey(0)
     
     if save_path!=None:
-        cv2.imwrite(save_path, vertical)
+        cv2.imwrite(save_path, image)

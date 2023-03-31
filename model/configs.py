@@ -1,0 +1,14 @@
+# Hyperparameters
+H, W = 256, 256
+BATCH_SIZE = 32
+GRAD_ACCUMULATE_FACTOR = 4  # minibatch_size = BATCH_SIZE / GRAD_ACCUMULATE_FACTOR
+N_CRITICS = 5
+R1_GAMMA = 10
+
+# Generator and Discriminator
+NUM_FEATURE_MAP = {512:64, 256: 64, 128:128, 64:256, 32:512, 16:512, 8:512, 4:512, 2:512}
+NUM_MAPPING_LAYER = 8
+LATENT_SIZE = 512
+
+# Gradient Penalty weight
+GP_LAMBDA = 10
