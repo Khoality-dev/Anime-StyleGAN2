@@ -137,7 +137,7 @@ def train(qMainWindow, args):
             qMainWindow.save_flag = False
 
         if qMainWindow.exit_flag:
-            save_models(G, D, optimizer_G, optimizer_D, visual_z, visual_noise)
+            save_models(model_path, G, D, optimizer_G, optimizer_D, visual_z, visual_noise)
             print("Exiting...")
             return
 
