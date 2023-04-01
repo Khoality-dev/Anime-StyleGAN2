@@ -1,6 +1,6 @@
 from PyQt5.QtGui import QKeyEvent, QImage, QPixmap
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
 import threading
 from .plotlib import process_display_image
 
@@ -57,6 +57,7 @@ class QMainWindow(QWidget):
     def keyPressEvent(self, event: QKeyEvent):
         if (event.key() == Qt.Key.Key_Q):
             self.exit_flag = True
+            QApplication.quit()
         elif (event.key() == Qt.Key.Key_U):
             self.updatePreviewImage()
             self.updateDisplay()
