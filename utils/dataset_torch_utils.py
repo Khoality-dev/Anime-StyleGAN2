@@ -5,9 +5,10 @@ import numpy as np
 import io
 import h5py
 from PIL import Image
+import torchvision
 
 class Torch_Dataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, resolution = (256,256), type = "h5"):
+    def __init__(self, root_dir, resolution = (256, 256), type = "h5"):
         self.root_dir = root_dir
         self.resolution = resolution
         self.type = type
@@ -30,4 +31,4 @@ class Torch_Dataset(torch.utils.data.Dataset):
             image = cv2.imread(image_path)
 
         cv2.resize(image, self.resolution)
-        return image
+        return torchvision.transforms.ToTensor()((image / 127.5) - 1).to(torch.float32)

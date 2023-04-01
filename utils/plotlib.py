@@ -38,19 +38,25 @@ def process_display_image(img_list):
             out_image = temp.copy()
         else:
             out_image = np.vstack((out_image, temp.copy()))
-    return out_image
 
-def display_img(img_list, save_path = None, show = False):
-    
-    image = process_display_image(img_list)
     root = tk.Tk()
     resolution = min(root.winfo_screenwidth(), root.winfo_screenheight())
-    header_size = 100
-    image = cv2.resize(image, (resolution - header_size, resolution - header_size))
+    if (resolution < out_image.shape[0]):
+        header_size = 100
+        out_image = cv2.resize(out_image, (resolution - header_size, resolution - header_size))
+    return out_image
 
-    if show:
+def display_img(img_list, save_path = None, show = None):
+    image = process_display_image(img_list)
+
+    if show is not None:
+        root = tk.Tk()
+        resolution = min(root.winfo_screenwidth(), root.winfo_screenheight())
+        header_size = 100
+        if (image.shape[0] > resolution):
+            image = cv2.resize(image, (resolution - header_size, resolution - header_size))
         cv2.imshow('Preview', image)
-        cv2.waitKey(0)
+        cv2.waitKey(show)
     
-    if save_path!=None:
+    if save_path is not None:
         cv2.imwrite(save_path, image)
