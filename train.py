@@ -25,8 +25,7 @@ def train(qMainWindow, args):
     else:
         G = Generator(LATENT_SIZE, NUM_MAPPING_LAYER, H)
         D = Discriminator(H)
-        optimizer_M = torch.optim.Adam(G.mapping_network.parameters(), lr = MAPPING_NETWORK_LEARNING_RATE *0.1, betas = [0, 0.9], eps=1e-8)
-        optimizer_S = torch.optim.Adam(G.synthesis.parameters(), lr = SYNTHESIS_LEARNING_RATE, betas = [0, 0.9], eps=1e-8)
+        optimizer_G = torch.optim.Adam(G.parameters(), lr = SYNTHESIS_LEARNING_RATE, betas = [0, 0.9], eps=1e-8)
         optimizer_D = torch.optim.Adam(D.parameters(), lr = SYNTHESIS_LEARNING_RATE, betas = [0, 0.9], eps=1e-8)
         visual_z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
         visual_noise = torch.randn(size = (mini_batch_size, 1, H, W))
@@ -50,7 +49,6 @@ def train(qMainWindow, args):
         for _ in range(N_CRITICS):
             D.zero_grad()
             for _ in range(GRAD_ACCUMULATE_FACTOR):
-                
                 if (scaler_D is not None):
                     with torch.cuda.amp.autocast():
                         real_samples = next(batch_iter).to(device)
@@ -91,8 +89,7 @@ def train(qMainWindow, args):
             scaler_G.step(optimizer_G)
             scaler_G.update()
         else:
-            optimizer_M.step()
-            optimizer_S.step()
+            optimizer_G.step()
         G.zero_grad()
         
         qMainWindow.image_lock.acquire()
@@ -109,11 +106,10 @@ def train(qMainWindow, args):
             qMainWindow.updateDisplay()
         
         if (iteration % args.cp_iter == 0):
-            pass
-            #save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z, visual_noise)
+            save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z, visual_noise)
 
         if qMainWindow.save_flag:
-            #save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z, visual_noise)
+            save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z, visual_noise)
             qMainWindow.save_flag = False
 
         if qMainWindow.exit_flag:
