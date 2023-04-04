@@ -2,8 +2,8 @@ import torch
 import torch.nn.functional as functional
 from . import configs
 
-def D_loss_r1(G, D, z, noise, real_samples):
-    fake_samples = G(z,noise).type(real_samples.type())
+def D_loss_r1(G, D, z, real_samples):
+    fake_samples = G(z).type(real_samples.type())
     real_scores = D(real_samples)
     fake_scores = D(fake_samples)
     main_loss = torch.mean(functional.softplus(fake_scores)) + torch.mean(functional.softplus(-real_scores))
@@ -17,10 +17,10 @@ def D_loss_r1(G, D, z, noise, real_samples):
     regularization = 0.5 * configs.R1_GAMMA * torch.mean(torch.sum(torch.square(grads[0]), dim = [1,2,3]))
     return main_loss + regularization
 
-def D_WGAN_loss_gp(G, D, z, noise, real_samples):
+def D_WGAN_loss_gp(G, D, z, real_samples):
     batch_size, C, H, W = real_samples.shape
 
-    fake_samples = G(z,noise).type(real_samples.type())
+    fake_samples = G(z).type(real_samples.type())
     real_scores = D(real_samples)
     fake_scores = D(fake_samples)
     main_loss = functional.softplus(fake_scores).mean() + functional.softplus(-real_scores).mean()
@@ -35,14 +35,14 @@ def D_WGAN_loss_gp(G, D, z, noise, real_samples):
     gp = (grad[0].norm() - 1).square().mean()
     return main_loss + 10 * gp
 
-def G_loss(G, D, z, noise):
-    fake_samples = G(z, noise)
+def G_loss(G, D, z):
+    fake_samples = G(z)
     fake_scores = D(fake_samples)
     return torch.mean(functional.softplus(-fake_scores))
 
 def G_loss_pl(G, D, fake_samples, real_samples):
     pass
 
-def G_loss_test(G, D, z, noise, real_samples):
-    fake_samples = G(z, noise)
+def G_loss_test(G, D, z, real_samples):
+    fake_samples = G(z)
     return (real_samples - fake_samples).square().mean()

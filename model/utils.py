@@ -1,6 +1,6 @@
 import pickle
 import os
-def save_models(save_path, G, D, optimizer_G, optimizer_D, visual_z, visual_noise):
+def save_models(save_path, G, D, optimizer_G, optimizer_D, visual_z):
     print("Saving...",end='')
     if not(os.path.exists(save_path)):
         os.makedirs(save_path)
@@ -22,7 +22,6 @@ def save_models(save_path, G, D, optimizer_G, optimizer_D, visual_z, visual_nois
     with open(save_path + "/static_noise_seed.pkl", "wb") as f:
         static_noise_seed_pkl = {
             "visual_z": visual_z,
-            "visual_noise": visual_noise
         }
         pickle.dump(static_noise_seed_pkl, f)
         
@@ -31,7 +30,7 @@ def save_models(save_path, G, D, optimizer_G, optimizer_D, visual_z, visual_nois
 
 def load_models(model_file_path):
     print("Loading pretrained models...", end = '')
-    G = optimizer_G = D = optimizer_D = visual_z = visual_noise = None
+    G = optimizer_G = D = optimizer_D = visual_z = None
     with open(model_file_path + "/Generator.pkl", "rb") as f:
         G_pkl = pickle.load(f)
         G = G_pkl["model"]
@@ -45,6 +44,5 @@ def load_models(model_file_path):
     with open(model_file_path + "/static_noise_seed.pkl", "rb") as f:
         static_noise_seed_pkl = pickle.load(f)
         visual_z = static_noise_seed_pkl["visual_z"]
-        visual_noise = static_noise_seed_pkl["visual_noise"]
     print("Done!")
-    return G, optimizer_G, D, optimizer_D, visual_z, visual_noise
+    return G, optimizer_G, D, optimizer_D, visual_z

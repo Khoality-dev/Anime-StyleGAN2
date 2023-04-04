@@ -1,11 +1,12 @@
+import torch
+
 # Hyperparameters
 H, W = 256, 256
 BATCH_SIZE = 32
-SYNTHESIS_LEARNING_RATE = 2e-4
-MAPPING_NETWORK_LEARNING_RATE = 2e-3
+LEARNING_RATE = 0.00002
 GRAD_ACCUMULATE_FACTOR = 8  # minibatch_size = BATCH_SIZE / GRAD_ACCUMULATE_FACTOR
 LAZY_REG_FACTOR = 16 # apply once every 16 minibatch
-N_CRITICS = 5
+N_CRITICS = 1
 
 # Generator and Discriminator
 NUM_FEATURE_MAP = {512:64, 256: 64, 128:128, 64:256, 32:512, 16:512, 8:512, 4:512, 2:512}
@@ -15,3 +16,5 @@ LATENT_SIZE = 512
 # Gradient Penalty weight
 GP_LAMBDA = 10
 R1_GAMMA = 10
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
