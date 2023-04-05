@@ -18,7 +18,7 @@ class QMainWindow(QWidget):
         self.reals_list = None
         self.static_fakes_list = None
         self.exit_flag = False
-        self.save_flag = True
+        self.save_flag = False
         self.image_lock = threading.Lock()
         self.show()
 

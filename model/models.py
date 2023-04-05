@@ -124,55 +124,26 @@ class MinibatchStdDev(nn.Module):
         return x
 
 class DiscriminiatorBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, down = True, ministddev = False):
+    def __init__(self, in_channels, out_channels):
         super(DiscriminiatorBlock, self).__init__()
+        self.skip = nn.Sequential(
+            nn.AvgPool2d(2),
+            nn.Conv2d(in_channels, out_channels, 1, 1, 'same', bias=False))
 
-        self.downsample = nn.AvgPool2d(2) if (down) else None
-
-        self.skip = None
-        self.ministddev = None
-
-        if (ministddev):
-            self.ministddev = MinibatchStdDev()
-        elif not(down):
-            self.skip = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, 1, 1, 'same'),
-                nn.LeakyReLU(0.2))
-
-        self.conv0 = None
-        if (ministddev):
-            self.conv0 = nn.Sequential(
-                nn.Conv2d(in_channels+1, out_channels, 3, 1, 'same'),
-                nn.LeakyReLU(0.2))
-        else:
-            self.conv0 = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, 3, 1, 'same'),
-                nn.LeakyReLU(0.2))
-
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, 4, 1, 'valid'),
-            nn.LeakyReLU(0.2)) if ministddev else nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, 3, 1, 'same'),
+        self.conv0 = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, 3, 1, 'same'),
             nn.LeakyReLU(0.2))
 
+        self.conv1 = nn.Sequential(
+                    nn.AvgPool2d(2),
+                    nn.Conv2d(in_channels, out_channels, 3, 1, 'same'),
+                    nn.LeakyReLU(0.2))
+        
     def forward(self, x):
-        if self.downsample is not None:
-            x = self.downsample(x)
-
-        y = None
-        if self.skip is not None:
-            y = self.skip(x)
-
-        if self.ministddev is not None:
-            x = self.ministddev(x)
-
+        y = self.skip(x)
         x = self.conv0(x)
-
-        if self.conv1 is not None:
-            x = self.conv1(x)
-
-        if y is not None:
-            x = y.add(x)
+        x = self.conv1(x)
+        x = y.add(x)
             
         return x
 
@@ -180,7 +151,7 @@ class Synthesis(nn.Module):
     def __init__(self, latent_dims, final_resolution):
         super(Synthesis, self).__init__()
         
-        self.constant_layer = nn.Parameter(torch.ones(NUM_FEATURE_MAP[4], 4, 4))
+        self.constant_layer = nn.Parameter(torch.randn(NUM_FEATURE_MAP[4], 4, 4))
 
         self.constant_layer_cache = self.constant_layer.repeat(8, 1, 1, 1)
         self.first_block = StyleLayer(NUM_FEATURE_MAP[4], NUM_FEATURE_MAP[4], latent_dims)
@@ -218,6 +189,8 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.mapping_network = MappingNetwork(latent_dims, num_mapping_network_layers)
         self.synthesis = Synthesis(latent_dims, final_resolution)
+        self.pl_mean = None
+        self.iteration = 0
 
     def forward(self, z):
         w = self.mapping_network(z)
@@ -228,29 +201,36 @@ class Discriminator(nn.Module):
     def __init__(self, orginal_resolution):
         super(Discriminator, self).__init__()
         self.blocks = []
-
+        self.fromRGB = nn.Sequential(
+            nn.Conv2d(3, NUM_FEATURE_MAP[orginal_resolution], 1, 1, 'same'),
+            nn.LeakyReLU(0.2))
         current_resolution = orginal_resolution
         while (current_resolution > 4):
-            block = None
-            if (len(self.blocks) == 0):
-                block = DiscriminiatorBlock(3, NUM_FEATURE_MAP[orginal_resolution], down=False)
-            else:
-                block = DiscriminiatorBlock(NUM_FEATURE_MAP[current_resolution*2], NUM_FEATURE_MAP[current_resolution])
+            block = DiscriminiatorBlock(NUM_FEATURE_MAP[current_resolution], NUM_FEATURE_MAP[current_resolution//2])
             self.blocks.append(block)
             self.add_module("disciminator_block_"+str(NUM_FEATURE_MAP[current_resolution])+"x"+str(current_resolution)+"x"+str(current_resolution), block)
             current_resolution = (current_resolution >> 1)
 
-        block = DiscriminiatorBlock(NUM_FEATURE_MAP[current_resolution*2], NUM_FEATURE_MAP[current_resolution], down=True, ministddev=True)
-        self.blocks.append(block)
-        self.add_module("disciminator_block_"+str(NUM_FEATURE_MAP[current_resolution])+"x"+str(current_resolution)+"x"+str(current_resolution), block)
-        current_resolution = 4
+        self.minibatch_stddev = MinibatchStdDev()
+        self.conv = nn.Sequential(
+            nn.Conv2d(NUM_FEATURE_MAP[4] + 1, NUM_FEATURE_MAP[4], 1, 1, 'same'),
+            nn.LeakyReLU(0.2))
+        self.fc = nn.Sequential(
+            nn.Linear(NUM_FEATURE_MAP[4] * 4 * 4, NUM_FEATURE_MAP[4]),
+            nn.LeakyReLU(0.2)
+        )
         self.flatten = nn.Flatten()
-        self.fc = nn.Linear(NUM_FEATURE_MAP[current_resolution], 1)
+        self.out = nn.Linear(NUM_FEATURE_MAP[4], 1)
 
     def forward(self, x):
+        x = self.fromRGB(x)
         for i in range(len(self.blocks)):
             x = self.blocks[i](x)
+        x = self.minibatch_stddev(x)
+        x = self.conv(x)
         x = self.flatten(x)
         x = self.fc(x)
+        x = self.out(x)
         return x
 
+ 
