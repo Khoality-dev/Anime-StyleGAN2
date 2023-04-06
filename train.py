@@ -7,7 +7,7 @@ from utils.plotlib import *
 from model.models import Generator, Discriminator
 from model.configs import *
 from model.losses import *
-from model.utils import save_models, load_models
+from model.utils import sampling_large_batch, save_models, load_models
 from PyQt5.QtWidgets import QApplication
 import threading
 from collections import deque
@@ -68,7 +68,7 @@ def train(qMainWindow, args):
         qMainWindow.image_lock.acquire()
         if (qMainWindow.fakes_list is None or qMainWindow.reals_list is None or qMainWindow.static_fakes_list is None):
             with torch.no_grad():
-                qMainWindow.fakes_list = list((G(z).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                qMainWindow.fakes_list = list((sampling_large_batch(G, VISUALIZATION_BATCH_SIZE, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 qMainWindow.reals_list = list((real_samples.permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 qMainWindow.static_fakes_list = list((G(visual_z).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
         qMainWindow.image_lock.release()

@@ -8,8 +8,11 @@ class QMainWindow(QWidget):
     def __init__(self):
         super(QMainWindow, self).__init__()
         self.setWindowTitle("Preview")
+        
         self.label = QLabel(self)
+        self.label.setContentsMargins(0,0,0,0)
         self.setLayout(QVBoxLayout())
+        self.layout().setContentsMargins(0,0,0,0)
         self.layout().addWidget(self.label)
         self.fakes_image = None
         self.reals_image = None
