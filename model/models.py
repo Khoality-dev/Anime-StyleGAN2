@@ -55,7 +55,6 @@ class FullyConnectedLayer(nn.Module):
         x = x.matmul(w.t())
 
         if self.b is not None:
-            b = self.
             x = x.add(self.b)
 
         if self.activation is not None:
