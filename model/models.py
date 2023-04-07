@@ -12,7 +12,7 @@ class ModulatedConv2D(nn.Module):
 
         self.w = nn.Parameter(torch.randn(size = (out_channels, in_channels, kernel_size, kernel_size)))
         self.w_gain = 1. / np.sqrt(in_channels * kernel_size * kernel_size)
-        self.b = nn.Parameter(torch.zeros(size = (out_channels,)))
+        self.b = nn.Parameter(torch.zeros(size = (out_channels,)) / out_channels)
         self.activation = nn.LeakyReLU(0.2)
         self.stride = stride
         self.padding = padding
@@ -42,7 +42,7 @@ class FullyConnectedLayer(nn.Module):
         self.w = nn.Parameter(torch.randn(size = (out_features, in_features)))
         self.b = None
         if bias_init is not None:
-            self.b = nn.Parameter(torch.full(size = [out_features,], fill_value = 1.0 * bias_init))
+            self.b = nn.Parameter(torch.full(size = [out_features,], fill_value = 1.0 * bias_init) / out_features)
         self.w_gain = 1. / np.sqrt(in_features)
         
         self.activation = None
@@ -69,7 +69,7 @@ class Conv2DLayer(nn.Module):
 
         self.b = None
         if bias_init is not None:
-            self.b = nn.Parameter(torch.full(size = (out_features,), fill_value=1. * bias_init))
+            self.b = nn.Parameter(torch.full(size = (out_features,), fill_value=1. * bias_init) / out_features)
 
         self.w_gain = 1. / np.sqrt(in_features * kernel_size * kernel_size)
 
@@ -119,7 +119,7 @@ class StyleLayer(nn.Module):
     def __init__(self, in_channels, out_channels, w_dim):
         super(StyleLayer, self).__init__()
         self.affine = FullyConnectedLayer(w_dim, in_channels, 1.)
-        self.noise_strength = nn.Parameter(torch.ones([]))
+        self.noise_strength = nn.Parameter(torch.full([], 0.1))
         self.conv = ModulatedConv2D(in_channels, out_channels, 3)
 
     def forward(self, x, w):
@@ -185,7 +185,7 @@ class Synthesis(nn.Module):
     def __init__(self, latent_dims, final_resolution):
         super(Synthesis, self).__init__()
         
-        self.constant_layer = nn.Parameter(torch.randn(NUM_FEATURE_MAP[4], 4, 4))
+        self.constant_layer = nn.Parameter(torch.randn(NUM_FEATURE_MAP[4], 4, 4) / np.sqrt(NUM_FEATURE_MAP[4] * 4 * 4))
 
         self.constant_layer_cache = self.constant_layer.repeat(8, 1, 1, 1)
         self.first_block = StyleLayer(NUM_FEATURE_MAP[4], NUM_FEATURE_MAP[4], latent_dims)
@@ -244,7 +244,7 @@ class Discriminator(nn.Module):
             current_resolution = (current_resolution >> 1)
 
         self.minibatch_stddev = MinibatchStdDev()
-        self.conv = Conv2DLayer(NUM_FEATURE_MAP[4] + 1, NUM_FEATURE_MAP[4], 1, 1, 'same', activation=True)
+        self.conv = Conv2DLayer(NUM_FEATURE_MAP[4] + 1, NUM_FEATURE_MAP[4], 3, 1, 'same', activation=True)
         self.fc = FullyConnectedLayer(NUM_FEATURE_MAP[4] * 4 * 4, NUM_FEATURE_MAP[4], activation = True)
         self.flatten = nn.Flatten()
         self.out = FullyConnectedLayer(NUM_FEATURE_MAP[4], 1)

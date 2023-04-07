@@ -13,6 +13,8 @@ import threading
 from collections import deque
 
 def train(qMainWindow, args):
+    random_seed = 1.048596
+    torch.manual_seed(random_seed)
     mini_batch_size = int(BATCH_SIZE / GRAD_ACCUMULATE_FACTOR)
     dataset = Torch_Dataset(args.data_src)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size = mini_batch_size, shuffle = True)
