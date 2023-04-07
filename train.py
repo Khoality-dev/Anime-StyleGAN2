@@ -27,7 +27,6 @@ def train(qMainWindow, args):
         optimizer_G = torch.optim.Adam(G.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         optimizer_D = torch.optim.Adam(D.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         visual_z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
-        
         random_seed = 1.048596
         torch.manual_seed(random_seed)
 

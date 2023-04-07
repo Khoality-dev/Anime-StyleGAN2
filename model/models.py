@@ -12,7 +12,7 @@ class ModulatedConv2D(nn.Module):
 
         self.w = nn.Parameter(torch.randn(size = (out_channels, in_channels, kernel_size, kernel_size)))
         self.w_gain = 1. / np.sqrt(in_channels * kernel_size * kernel_size)
-        self.b = nn.Parameter(torch.zeros(size = (out_channels,)) / out_channels)
+        self.b = nn.Parameter(torch.zeros(size = (out_channels,)))
         self.activation = nn.LeakyReLU(0.2)
         self.stride = stride
         self.padding = padding
@@ -33,7 +33,7 @@ class ModulatedConv2D(nn.Module):
         x = x.add(b)
         if noise is not None:
             x = x.add(noise)
-        x = self.activation(x)
+        x = self.activation(x) * np.sqrt(2)
         return x
 
 class FullyConnectedLayer(nn.Module):
@@ -42,12 +42,11 @@ class FullyConnectedLayer(nn.Module):
         self.w = nn.Parameter(torch.randn(size = (out_features, in_features)))
         self.b = None
         if bias_init is not None:
-            self.b = nn.Parameter(torch.full(size = [out_features,], fill_value = 1.0 * bias_init) / out_features)
+            self.b = nn.Parameter(torch.full(size = [out_features,], fill_value = 1.0 * bias_init))
         self.w_gain = 1. / np.sqrt(in_features)
         
         self.activation = None
         if (activation):
-            self.act_gain = np.sqrt(2)
             self.activation = nn.LeakyReLU(0.2)
 
     def forward(self, x):
@@ -58,7 +57,7 @@ class FullyConnectedLayer(nn.Module):
             x = x.add(self.b)
 
         if self.activation is not None:
-            x = self.activation(x)
+            x = self.activation(x) * np.sqrt(2)
 
         return x
 
@@ -69,7 +68,7 @@ class Conv2DLayer(nn.Module):
 
         self.b = None
         if bias_init is not None:
-            self.b = nn.Parameter(torch.full(size = (out_features,), fill_value=1. * bias_init) / out_features)
+            self.b = nn.Parameter(torch.full(size = (out_features,), fill_value=1. * bias_init))
 
         self.w_gain = 1. / np.sqrt(in_features * kernel_size * kernel_size)
 
@@ -85,7 +84,7 @@ class Conv2DLayer(nn.Module):
         b = self.b
         x = functional.conv2d(x, w, b, self.stride, self.padding)
         if self.activation is not None:
-            x = self.activation(x)
+            x = self.activation(x) * np.sqrt(2)
 
         return x
 
@@ -187,7 +186,7 @@ class Synthesis(nn.Module):
         
         self.constant_layer = nn.Parameter(torch.randn(NUM_FEATURE_MAP[4], 4, 4) / np.sqrt(NUM_FEATURE_MAP[4] * 4 * 4))
 
-        self.constant_layer_cache = self.constant_layer.repeat(8, 1, 1, 1)
+        self.constant_layer_cache = self.constant_layer.unsqueeze(0).repeat(8, 1, 1, 1)
         self.first_block = StyleLayer(NUM_FEATURE_MAP[4], NUM_FEATURE_MAP[4], latent_dims)
         self.first_block_toRGB = toRGBLayer(NUM_FEATURE_MAP[4], final_resolution)
 
@@ -205,7 +204,7 @@ class Synthesis(nn.Module):
         batch_size, _ = w.shape
         
         if (batch_size != self.constant_layer.shape[0]):
-            self.constant_layer_cache = self.constant_layer.repeat(batch_size, 1, 1, 1)
+            self.constant_layer_cache = self.constant_layer.unsqueeze(0).repeat(batch_size, 1, 1, 1)
 
         x = self.constant_layer_cache
         x = self.first_block(x, w)
