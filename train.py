@@ -13,8 +13,6 @@ import threading
 from collections import deque
 
 def train(qMainWindow, args):
-    random_seed = 1.048596
-    torch.manual_seed(random_seed)
     mini_batch_size = int(BATCH_SIZE / GRAD_ACCUMULATE_FACTOR)
     dataset = Torch_Dataset(args.data_src)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size = mini_batch_size, shuffle = True)
@@ -29,6 +27,9 @@ def train(qMainWindow, args):
         optimizer_G = torch.optim.Adam(G.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         optimizer_D = torch.optim.Adam(D.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         visual_z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
+        
+        random_seed = 1.048596
+        torch.manual_seed(random_seed)
 
     G.to(DEVICE)
     D.to(DEVICE)
