@@ -48,9 +48,9 @@ class QMainWindow(QWidget):
         if (self.display_mode == 0):
             image = self.fakes_image
         elif (self.display_mode == 1):
-            image = self.reals_image
-        else:
             image = self.static_fakes_image
+        else:
+            image = self.reals_image
 
         H, W, C = image.shape
         self.image = QPixmap.fromImage(QImage(image.data, W, H, 3 * W, QImage.Format.Format_BGR888))
@@ -64,7 +64,10 @@ class QMainWindow(QWidget):
         elif (event.key() == Qt.Key.Key_U):
             self.updatePreviewImage()
             self.updateDisplay()
-        elif (event.key() == Qt.Key.Key_P):
+        elif (event.key() == Qt.Key.Key_BracketLeft):
+            self.display_mode = (self.display_mode + 2) % 3
+            self.updateDisplay()
+        elif (event.key() == Qt.Key.Key_BracketRight):
             self.display_mode = (self.display_mode + 1) % 3
             self.updateDisplay()
         elif (event.key() == Qt.Key.Key_S):

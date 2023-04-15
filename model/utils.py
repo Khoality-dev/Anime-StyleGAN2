@@ -49,17 +49,16 @@ def load_models(model_file_path):
     print("Done!")
     return G, optimizer_G, D, optimizer_D, visual_z
 
-def sampling_large_batch(G, batch_size, minibatch_size, device):
+def G_large_batch(G, zs, minibatch_size, device):
     out_samples = None
-    while (batch_size > 0):
-        minibatch_size = min(minibatch_size, batch_size)
+    for start in range(0, zs.shape[0], minibatch_size):
+        end = min(start + minibatch_size, zs.shape[0])
+        z = zs[start:end]
+        samples = G(z.to(DEVICE)).to(device)
         with torch.no_grad():
-            z = torch.randn(minibatch_size, LATENT_SIZE).to(device)
-            samples = G(z.to(DEVICE)).to(device)
-        if out_samples is None:
-            out_samples = samples
-        else:
-            out_samples = torch.cat((out_samples, samples))
+            if out_samples is None:
+                out_samples = samples
+            else:
+                out_samples = torch.cat((out_samples, samples))
         
-        batch_size -= minibatch_size
     return out_samples

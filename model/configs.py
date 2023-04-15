@@ -18,7 +18,7 @@ LATENT_SIZE = 512
 GP_LAMBDA = 10
 R1_GAMMA = 10
 PL_WEIGHT = 2
-PL_BATCH_SIZE_RATIO = 1.0
+PL_BATCH_SIZE_RATIO = 0.5
 PL_DECAY = 0.01
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

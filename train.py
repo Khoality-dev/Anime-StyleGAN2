@@ -7,7 +7,7 @@ from utils.plotlib import *
 from model.models import Generator, Discriminator
 from model.configs import *
 from model.losses import *
-from model.utils import sampling_large_batch, save_models, load_models
+from model.utils import G_large_batch, save_models, load_models
 from PyQt5.QtWidgets import QApplication
 import threading
 from collections import deque
@@ -32,8 +32,6 @@ def train(qMainWindow, args):
 
     G.to(DEVICE)
     D.to(DEVICE)
-
-    visual_z = visual_z.to(DEVICE)
     while (True):
         real_samples = None
         for _ in range(N_CRITICS):
@@ -58,7 +56,7 @@ def train(qMainWindow, args):
 
             g_Loss = None
             if (G.iteration % LAZY_REG_FACTOR == 0):
-                g_Loss = G_loss_pl(G, D, z, regularization=True)
+                g_Loss = G_loss_pl(G, D, z, regularization=False)
             else:
                 g_Loss = G_loss_pl(G, D, z, regularization=False)
 
@@ -70,14 +68,19 @@ def train(qMainWindow, args):
         qMainWindow.image_lock.acquire()
         if (qMainWindow.fakes_list is None or qMainWindow.reals_list is None or qMainWindow.static_fakes_list is None):
             with torch.no_grad():
-                qMainWindow.fakes_list = list((sampling_large_batch(G, VISUALIZATION_BATCH_SIZE, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                zs = torch.rand(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
+                qMainWindow.fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 qMainWindow.reals_list = list((real_samples.permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-                qMainWindow.static_fakes_list = list((G(visual_z).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                qMainWindow.static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
         qMainWindow.image_lock.release()
 
         if (G.iteration % args.log_iter == 0):
             print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
         
+        if (G.iteration % 100 == 0):
+            qMainWindow.updatePreviewImage()
+            qMainWindow.updateDisplay()
+
         if (G.iteration % args.cp_iter == 0):
             save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)
 
@@ -97,7 +100,7 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--new', action = 'store_true', dest = 'train_new', default = False)
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 100)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
-    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = 'E:/anime_dataset/d1k_256x256.h5')
+    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
     args = parser.parse_args()
 
