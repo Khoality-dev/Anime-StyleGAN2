@@ -107,16 +107,15 @@ def train(mainWindow, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--new', action = 'store_true', dest = 'train_new', default = False)
-    parser.add_argument('-i', '--interactive-mode', action = 'store_true', dest = 'interactive_mode', default = True)
+    parser.add_argument('-i', '--interactive-mode', action = 'store_true', dest = 'interactive_mode', default = False)
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 100)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
-    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
+    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = 'd1k_256x256.h5')
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
     args = parser.parse_args()
 
-    INTERACTIVE_MODE = not('google.colab' in str(get_ipython()))
     #if not interactive, save preview images
-    if args.interactive_mode and INTERACTIVE_MODE:
+    if args.interactive_mode:
         app = QApplication(sys.argv)
         mainWindow = QMainWindow()
         t = threading.Thread(target=train, args=[mainWindow, args])

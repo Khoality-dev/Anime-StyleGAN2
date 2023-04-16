@@ -39,11 +39,15 @@ def process_display_image(img_list):
         else:
             out_image = np.vstack((out_image, temp.copy()))
 
-    root = tk.Tk()
-    resolution = min(root.winfo_screenwidth(), root.winfo_screenheight())
-    if (resolution < out_image.shape[0]):
-        header_size = 100
-        out_image = cv2.resize(out_image, (resolution - header_size, resolution - header_size))
+    try:
+        root = tk.Tk()
+        resolution = min(root.winfo_screenwidth(), root.winfo_screenheight())
+        if (resolution < out_image.shape[0]):
+            header_size = 100
+            out_image = cv2.resize(out_image, (resolution - header_size, resolution - header_size))
+    except:
+        ... # not resize to fit screen
+
     return out_image
 
 def display_image_list(img_list, save_path = None, show = None):
