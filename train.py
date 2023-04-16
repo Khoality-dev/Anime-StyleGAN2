@@ -22,13 +22,13 @@ def train(qMainWindow, args):
     if not(args.train_new) and os.path.exists(args.cp_src):
          G, optimizer_G, D, optimizer_D, visual_z = load_models(args.cp_src)
     else:
+        random_seed = 1.048596
+        torch.manual_seed(random_seed)
         G = Generator(LATENT_SIZE, NUM_MAPPING_LAYER, H)
         D = Discriminator(H)
         optimizer_G = torch.optim.Adam(G.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         optimizer_D = torch.optim.Adam(D.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         visual_z = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
-        random_seed = 1.048596
-        torch.manual_seed(random_seed)
 
     G.to(DEVICE)
     D.to(DEVICE)
