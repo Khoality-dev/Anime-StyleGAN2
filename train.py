@@ -73,7 +73,7 @@ def train(qMainWindow, args):
 
         if (qMainWindow.update_flag):
             with torch.no_grad():
-                zs = torch.rand(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
+                zs = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
                 qMainWindow.fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 qMainWindow.reals_list = list((real_samples.permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 qMainWindow.static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)

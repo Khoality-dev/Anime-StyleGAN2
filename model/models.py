@@ -187,7 +187,7 @@ class Synthesis(nn.Module):
     def __init__(self, latent_dims, final_resolution):
         super(Synthesis, self).__init__()
         
-        self.constant_layer = nn.Parameter(torch.randn(NUM_FEATURE_MAP[4], 4, 4) / np.sqrt(NUM_FEATURE_MAP[4] * 4 * 4))
+        self.constant_layer = nn.Parameter(torch.randn(NUM_FEATURE_MAP[4], 4, 4))
 
         self.constant_layer_cache = self.constant_layer.unsqueeze(0).repeat(8, 1, 1, 1)
         self.first_block = StyleLayer(NUM_FEATURE_MAP[4], NUM_FEATURE_MAP[4], latent_dims)
