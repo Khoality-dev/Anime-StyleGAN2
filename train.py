@@ -1,18 +1,30 @@
 import argparse
 import torch
 import sys
-from utils.QMainWindow import QMainWindow
+
 from utils.dataset_torch_utils import *
 from utils.plotlib import *
 from model.models import Generator, Discriminator
 from model.configs import *
 from model.losses import *
 from model.utils import G_large_batch, save_models, load_models
-from PyQt5.QtWidgets import QApplication
+
+
+# if PyQt5 is available, enable interactive mode
+INTERACTIVE_MODE = True
+try:
+    from utils.mainwindow import QMainWindow
+    from PyQt5.QtWidgets import QApplication
+except ImportError:
+    print("No Qt detected, Interactive mode disabled!")
+    from utils.mainwindow import MainWindow
+    INTERACTIVE_MODE = False
+
+
 import threading
 from collections import deque
 
-def train(qMainWindow, args):
+def train(mainWindow, args):
     mini_batch_size = int(BATCH_SIZE / GRAD_ACCUMULATE_FACTOR)
     dataset = Torch_Dataset(args.data_src)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size = mini_batch_size, shuffle = True)
@@ -69,26 +81,26 @@ def train(qMainWindow, args):
             print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
         
         if (G.iteration % 100 == 0):
-            qMainWindow.update = True
+            mainWindow.update = True
 
-        if (qMainWindow.update_flag):
+        if (mainWindow.update_flag):
             with torch.no_grad():
                 zs = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
-                qMainWindow.fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-                qMainWindow.reals_list = list((real_samples.permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-                qMainWindow.static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-            qMainWindow.updatePreviewImage()
-            qMainWindow.updateDisplay()
-            qMainWindow.update_flag = False
+                fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                reals_list = list((real_samples.permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+            mainWindow.updatePreviewImage(fakes_list, reals_list, static_fakes_list)
+            mainWindow.updateDisplay()
+            mainWindow.update_flag = False
 
         if (G.iteration % args.cp_iter == 0):
             save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)
 
-        if qMainWindow.save_flag:
+        if mainWindow.save_flag:
             save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)
-            qMainWindow.save_flag = False
+            mainWindow.save_flag = False
 
-        if qMainWindow.exit_flag:
+        if mainWindow.exit_flag:
             print("Exiting...")
             return
 
@@ -98,16 +110,23 @@ def train(qMainWindow, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--new', action = 'store_true', dest = 'train_new', default = False)
+    parser.add_argument('-i', '--interactive-mode', action = 'store_true', dest = 'interactive_mode', default = True)
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 100)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
     parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
     args = parser.parse_args()
 
-    app = QApplication(sys.argv)
-    window = QMainWindow()
-    t = threading.Thread(target=train, args=[window, args])
-    t.start()
-    return_code = app.exec_()
-    t.join()
-    sys.exit(return_code)
+
+    #if not interactive, save preview images
+    if args.interactive_mode and INTERACTIVE_MODE:
+        app = QApplication(sys.argv)
+        mainWindow = QMainWindow()
+        t = threading.Thread(target=train, args=[mainWindow, args])
+        t.start()
+        return_code = app.exec_()
+        t.join()
+        sys.exit(return_code)
+    else:
+        mainWindow = MainWindow()
+        train(mainWindow, args)
