@@ -65,21 +65,21 @@ def train(qMainWindow, args):
 
         optimizer_G.step()
 
-        qMainWindow.image_lock.acquire()
-        if (qMainWindow.fakes_list is None or qMainWindow.reals_list is None or qMainWindow.static_fakes_list is None):
+        if (G.iteration % args.log_iter == 0):
+            print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
+        
+        if (G.iteration % 100 == 0):
+            qMainWindow.update = True
+
+        if (qMainWindow.update_flag):
             with torch.no_grad():
                 zs = torch.rand(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
                 qMainWindow.fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 qMainWindow.reals_list = list((real_samples.permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 qMainWindow.static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-        qMainWindow.image_lock.release()
-
-        if (G.iteration % args.log_iter == 0):
-            print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
-        
-        if (G.iteration % 100 == 0):
             qMainWindow.updatePreviewImage()
             qMainWindow.updateDisplay()
+            qMainWindow.update_flag = False
 
         if (G.iteration % args.cp_iter == 0):
             save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)

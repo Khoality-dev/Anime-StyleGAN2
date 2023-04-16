@@ -22,15 +22,13 @@ class QMainWindow(QWidget):
         self.static_fakes_list = None
         self.exit_flag = False
         self.save_flag = False
-        self.image_lock = threading.Lock()
+        self.update_flag = True
         self.show()
 
         self.display_mode = 0 # 0 is static fake sample mode, 1 is random fake sample mode, 2 is real sample mode
 
     def updatePreviewImage(self):
-        self.image_lock.acquire()
         if (self.fakes_list is None or self.reals_list is None or self.static_fakes_list is None):
-            self.image_lock.release()
             return
         self.fakes_image = process_display_image(self.fakes_list)
         self.reals_image = process_display_image(self.reals_list)
@@ -38,7 +36,6 @@ class QMainWindow(QWidget):
         self.fakes_list = None
         self.reals_list = None
         self.static_fakes_list = None
-        self.image_lock.release()
 
     def updateDisplay(self):
         if (self.fakes_image is None or self.reals_image is None or self.static_fakes_image is None):
@@ -62,8 +59,7 @@ class QMainWindow(QWidget):
             self.exit_flag = True
             QApplication.quit()
         elif (event.key() == Qt.Key.Key_U):
-            self.updatePreviewImage()
-            self.updateDisplay()
+            self.update_flag = True
         elif (event.key() == Qt.Key.Key_BracketLeft):
             self.display_mode = max(self.display_mode - 1, 0)
             self.updateDisplay()
