@@ -9,18 +9,14 @@ from model.models import Generator, Discriminator
 from model.configs import *
 from model.losses import *
 from model.utils import G_large_batch, save_models, load_models
-
+from utils.mainwindow import MainWindow
 
 # if PyQt5 is available, enable interactive mode
-INTERACTIVE_MODE = True
 try:
     from utils.mainwindow import QMainWindow
     from PyQt5.QtWidgets import QApplication
 except ImportError:
-    print("No Qt detected, Interactive mode disabled!")
-    from utils.mainwindow import MainWindow
-    INTERACTIVE_MODE = False
-
+    ...
 
 import threading
 from collections import deque
