@@ -74,16 +74,29 @@ dependencies:
   - zlib=1.2.13
   - zstd=1.5.5
   - pip:
+      - backcall==0.2.0
       - cycler==0.11.0
+      - decorator==5.1.1
       - fonttools==4.38.0
       - h5py==3.8.0
+      - ipython==7.34.0
+      - jedi==0.18.2
       - kiwisolver==1.4.4
       - matplotlib==3.5.3
+      - matplotlib-inline==0.1.6
       - opencv-python-headless==4.7.0.72
       - packaging==23.1
+      - parso==0.8.3
+      - pexpect==4.8.0
+      - pickleshare==0.7.5
+      - prompt-toolkit==3.0.38
+      - ptyprocess==0.7.0
+      - pygments==2.15.0
       - pyparsing==3.0.9
       - pyqt5==5.15.9
       - pyqt5-qt5==5.15.2
       - pyqt5-sip==12.12.0
       - python-dateutil==2.8.2
+      - traitlets==5.9.0
+      - wcwidth==0.2.6
 prefix: /home/khoa/anaconda3/envs/venv
