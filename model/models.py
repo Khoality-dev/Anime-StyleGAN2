@@ -37,13 +37,14 @@ class ModulatedConv2D(nn.Module):
         return x
 
 class FullyConnectedLayer(nn.Module):
-    def __init__(self, in_features, out_features, bias_init = 0, activation = False):
+    def __init__(self, in_features, out_features, bias_init = 0, activation = False, lr_multiplyer = 1.0):
         super(FullyConnectedLayer, self).__init__()
-        self.w = nn.Parameter(torch.randn(size = (out_features, in_features)))
+        self.w = nn.Parameter(torch.randn(size = (out_features, in_features)) / lr_multiplyer)
         self.b = None
         if bias_init is not None:
             self.b = nn.Parameter(torch.full(size = [out_features,], fill_value = 1.0 * bias_init))
         self.w_gain = 1. / np.sqrt(in_features)
+        self.b_gain = lr_multiplyer
         
         self.activation = None
         if (activation):
@@ -54,7 +55,8 @@ class FullyConnectedLayer(nn.Module):
         x = x.matmul(w.t())
 
         if self.b is not None:
-            x = x.add(self.b)
+            b = self.b * self.b_gain
+            x = x.add(b)
 
         if self.activation is not None:
             x = self.activation(x) * np.sqrt(2)
@@ -79,12 +81,13 @@ class Conv2DLayer(nn.Module):
         if activation:
             self.activation = nn.LeakyReLU(0.2)
     
-    def forward(self, x):
+    def forward(self, x, gain = 1.0):
         w = self.w * self.w_gain
         b = self.b
         x = functional.conv2d(x, w, b, self.stride, self.padding)
         if self.activation is not None:
-            x = self.activation(x) * np.sqrt(2)
+            act_gain = np.sqrt(2) * gain #LeakyRelu gain * layer gain
+            x = self.activation(x) * act_gain
 
         return x
 
@@ -105,7 +108,7 @@ class MappingNetwork(nn.Module):
         super(MappingNetwork, self).__init__()
         self.fcs = []
         for i in range(num_layers):
-            fc = FullyConnectedLayer(latent_dim, latent_dim, activation=True)
+            fc = FullyConnectedLayer(latent_dim, latent_dim, activation=True, lr_multiplyer=0.01)
             self.fcs.append(fc)
             self.add_module(f'fc{i}', fc)
 
@@ -118,7 +121,7 @@ class StyleLayer(nn.Module):
     def __init__(self, in_channels, out_channels, w_dim):
         super(StyleLayer, self).__init__()
         self.affine = FullyConnectedLayer(w_dim, in_channels, 1.)
-        self.noise_strength = nn.Parameter(torch.full([], 0.1))
+        self.noise_strength = nn.Parameter(torch.full([], 0.))
         self.conv = ModulatedConv2D(in_channels, out_channels, 3)
 
     def forward(self, x, w):
@@ -162,20 +165,20 @@ class MinibatchStdDev(nn.Module):
 class DiscriminiatorBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DiscriminiatorBlock, self).__init__()
-        self.skip = nn.Sequential(
-            nn.AvgPool2d(2),
-            Conv2DLayer(in_channels, out_channels, 1, 1, 'same', bias_init=None))
+        self.downsample0 = nn.AvgPool2d(2)
+        self.skip = Conv2DLayer(in_channels, out_channels, 1, 1, 'same', bias_init=None)
 
         self.conv0 = Conv2DLayer(in_channels, in_channels, 3, 1, 'same', activation=True)
 
-        self.conv1 = nn.Sequential(
-                    nn.AvgPool2d(2),
-                    Conv2DLayer(in_channels, out_channels, 3, 1, 'same', activation=True))
+        self.downsample1 = nn.AvgPool2d(2)
+        self.conv1 = Conv2DLayer(in_channels, out_channels, 3, 1, 'same', activation=True)
         
     def forward(self, x):
-        y = self.skip(x)
+        y = self.downsample0(x)
+        y = self.skip(y, gain = np.sqrt(0.5))
         x = self.conv0(x)
-        x = self.conv1(x)
+        x = self.downsample1(x)
+        x = self.conv1(x, gain = np.sqrt(0.5))
         x = y.add(x)
             
         return x

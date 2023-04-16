@@ -65,10 +65,10 @@ class QMainWindow(QWidget):
             self.updatePreviewImage()
             self.updateDisplay()
         elif (event.key() == Qt.Key.Key_BracketLeft):
-            self.display_mode = (self.display_mode + 2) % 3
+            self.display_mode = max(self.display_mode - 1, 0)
             self.updateDisplay()
         elif (event.key() == Qt.Key.Key_BracketRight):
-            self.display_mode = (self.display_mode + 1) % 3
+            self.display_mode = min(self.display_mode + 1, 2)
             self.updateDisplay()
         elif (event.key() == Qt.Key.Key_S):
             self.save_flag = True
