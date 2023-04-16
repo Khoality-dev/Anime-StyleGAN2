@@ -78,7 +78,7 @@ def train(mainWindow, args):
             print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
         
         if (G.iteration % 100 == 0):
-            mainWindow.update = True
+            mainWindow.update_flag = True
 
         if (mainWindow.update_flag):
             with torch.no_grad():
