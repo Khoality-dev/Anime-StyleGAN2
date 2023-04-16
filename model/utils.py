@@ -1,5 +1,7 @@
 import pickle
 import os
+
+from model.configs import *
 def save_models(save_path, G, D, optimizer_G, optimizer_D, visual_z):
     print("Saving...",end='')
     if not(os.path.exists(save_path)):
@@ -46,3 +48,17 @@ def load_models(model_file_path):
         visual_z = static_noise_seed_pkl["visual_z"]
     print("Done!")
     return G, optimizer_G, D, optimizer_D, visual_z
+
+def G_large_batch(G, zs, minibatch_size, device):
+    out_samples = None
+    for start in range(0, zs.shape[0], minibatch_size):
+        end = min(start + minibatch_size, zs.shape[0])
+        z = zs[start:end]
+        samples = G(z.to(DEVICE)).to(device)
+        with torch.no_grad():
+            if out_samples is None:
+                out_samples = samples
+            else:
+                out_samples = torch.cat((out_samples, samples))
+        
+    return out_samples

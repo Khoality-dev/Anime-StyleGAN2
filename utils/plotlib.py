@@ -46,15 +46,13 @@ def process_display_image(img_list):
         out_image = cv2.resize(out_image, (resolution - header_size, resolution - header_size))
     return out_image
 
-def display_img(img_list, save_path = None, show = None):
+def display_image_list(img_list, save_path = None, show = None):
     image = process_display_image(img_list)
+    show_image(image)
+
+def show_image(image, save_path = None, show = None):
 
     if show is not None:
-        root = tk.Tk()
-        resolution = min(root.winfo_screenwidth(), root.winfo_screenheight())
-        header_size = 100
-        if (image.shape[0] > resolution):
-            image = cv2.resize(image, (resolution - header_size, resolution - header_size))
         cv2.imshow('Preview', image)
         cv2.waitKey(show)
     

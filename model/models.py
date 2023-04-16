@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as functional
 import torchvision.transforms as T
 import math
+import numpy as np
 from .configs import *
 
 class ModulatedConv2D(nn.Module):
@@ -10,6 +11,7 @@ class ModulatedConv2D(nn.Module):
         super(ModulatedConv2D, self).__init__()
 
         self.w = nn.Parameter(torch.randn(size = (out_channels, in_channels, kernel_size, kernel_size)))
+        self.w_gain = 1. / np.sqrt(in_channels * kernel_size * kernel_size)
         self.b = nn.Parameter(torch.zeros(size = (out_channels,)))
         self.activation = nn.LeakyReLU(0.2)
         self.stride = stride
@@ -18,6 +20,7 @@ class ModulatedConv2D(nn.Module):
     def forward(self, x, s, noise = None, demodulate = True):
         N, in_channels, H, W = x.shape
         out_channels, _, kH, kW = self.w.shape
+        w = self.w * self.w_gain
         w = self.w.unsqueeze(0)
         w = w * s.reshape(N, 1, -1, 1, 1)
         if (demodulate):
@@ -30,31 +33,69 @@ class ModulatedConv2D(nn.Module):
         x = x.add(b)
         if noise is not None:
             x = x.add(noise)
-        x = self.activation(x)
+        x = self.activation(x) * np.sqrt(2)
         return x
 
 class FullyConnectedLayer(nn.Module):
-    def __init__(self, in_features, out_features, bias_init, activation = False):
+    def __init__(self, in_features, out_features, bias_init = 0, activation = False, lr_multiplyer = 1.0):
         super(FullyConnectedLayer, self).__init__()
-        self.fc = nn.Linear(in_features, out_features, False) 
-        self.b = nn.Parameter(torch.full(size = [out_features,], fill_value= bias_init))
-
+        self.w = nn.Parameter(torch.randn(size = (out_features, in_features)) / lr_multiplyer)
+        self.b = None
+        if bias_init is not None:
+            self.b = nn.Parameter(torch.full(size = [out_features,], fill_value = 1.0 * bias_init))
+        self.w_gain = 1. / np.sqrt(in_features)
+        self.b_gain = lr_multiplyer
+        
         self.activation = None
         if (activation):
             self.activation = nn.LeakyReLU(0.2)
 
     def forward(self, x):
-        x = self.fc(x)
-        x = x.add(self.b)
+        w = self.w * self.w_gain
+        x = x.matmul(w.t())
+
+        if self.b is not None:
+            b = self.b * self.b_gain
+            x = x.add(b)
+
         if self.activation is not None:
-            x = self.activation(x)
+            x = self.activation(x) * np.sqrt(2)
+
+        return x
+
+class Conv2DLayer(nn.Module):
+    def __init__(self, in_features, out_features, kernel_size = 1, stride=1, padding='same', bias_init = 0, activation = False):
+        super(Conv2DLayer, self).__init__()
+        self.w = nn.Parameter(torch.randn(out_features, in_features, kernel_size, kernel_size))
+
+        self.b = None
+        if bias_init is not None:
+            self.b = nn.Parameter(torch.full(size = (out_features,), fill_value=1. * bias_init))
+
+        self.w_gain = 1. / np.sqrt(in_features * kernel_size * kernel_size)
+
+        self.stride = stride
+        self.padding = padding
+
+        self.activation = None
+        if activation:
+            self.activation = nn.LeakyReLU(0.2)
+    
+    def forward(self, x, gain = 1.0):
+        w = self.w * self.w_gain
+        b = self.b
+        x = functional.conv2d(x, w, b, self.stride, self.padding)
+        if self.activation is not None:
+            act_gain = np.sqrt(2) * gain #LeakyRelu gain * layer gain
+            x = self.activation(x) * act_gain
+
         return x
 
 class toRGBLayer(nn.Module):
     def __init__(self, in_channels, final_resolution):
         super(toRGBLayer, self).__init__()
         
-        self.conv = nn.Conv2d(in_channels, 3, 1,padding='same')
+        self.conv = Conv2DLayer(in_channels, 3, 1,padding='same')
         self.upsampling = nn.UpsamplingBilinear2d(size=final_resolution)
     
     def forward(self, x):
@@ -65,24 +106,22 @@ class toRGBLayer(nn.Module):
 class MappingNetwork(nn.Module):
     def __init__(self, latent_dim, num_layers):
         super(MappingNetwork, self).__init__()
-        self.layers = []
+        self.fcs = []
         for i in range(num_layers):
-            layer = nn.Sequential(
-                nn.Linear(latent_dim, latent_dim),
-                nn.LeakyReLU(0.2))
-            self.layers.append(layer)
-            self.add_module(f'fc{i}', layer)
+            fc = FullyConnectedLayer(latent_dim, latent_dim, activation=True, lr_multiplyer=0.01)
+            self.fcs.append(fc)
+            self.add_module(f'fc{i}', fc)
 
     def forward(self, z):
-        for i in range(len(self.layers)):
-            z = self.layers[i](z)
+        for i in range(len(self.fcs)):
+            z = self.fcs[i](z)
         return z
         
 class StyleLayer(nn.Module):
     def __init__(self, in_channels, out_channels, w_dim):
         super(StyleLayer, self).__init__()
         self.affine = FullyConnectedLayer(w_dim, in_channels, 1.)
-        self.noise_strength = nn.Parameter(torch.ones([]))
+        self.noise_strength = nn.Parameter(torch.full([], 0.))
         self.conv = ModulatedConv2D(in_channels, out_channels, 3)
 
     def forward(self, x, w):
@@ -126,23 +165,20 @@ class MinibatchStdDev(nn.Module):
 class DiscriminiatorBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DiscriminiatorBlock, self).__init__()
-        self.skip = nn.Sequential(
-            nn.AvgPool2d(2),
-            nn.Conv2d(in_channels, out_channels, 1, 1, 'same', bias=False))
+        self.downsample0 = nn.AvgPool2d(2)
+        self.skip = Conv2DLayer(in_channels, out_channels, 1, 1, 'same', bias_init=None)
 
-        self.conv0 = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels, 3, 1, 'same'),
-            nn.LeakyReLU(0.2))
+        self.conv0 = Conv2DLayer(in_channels, in_channels, 3, 1, 'same', activation=True)
 
-        self.conv1 = nn.Sequential(
-                    nn.AvgPool2d(2),
-                    nn.Conv2d(in_channels, out_channels, 3, 1, 'same'),
-                    nn.LeakyReLU(0.2))
+        self.downsample1 = nn.AvgPool2d(2)
+        self.conv1 = Conv2DLayer(in_channels, out_channels, 3, 1, 'same', activation=True)
         
     def forward(self, x):
-        y = self.skip(x)
+        y = self.downsample0(x)
+        y = self.skip(y, gain = np.sqrt(0.5))
         x = self.conv0(x)
-        x = self.conv1(x)
+        x = self.downsample1(x)
+        x = self.conv1(x, gain = np.sqrt(0.5))
         x = y.add(x)
             
         return x
@@ -153,7 +189,7 @@ class Synthesis(nn.Module):
         
         self.constant_layer = nn.Parameter(torch.randn(NUM_FEATURE_MAP[4], 4, 4))
 
-        self.constant_layer_cache = self.constant_layer.repeat(8, 1, 1, 1)
+        self.constant_layer_cache = self.constant_layer.unsqueeze(0).repeat(8, 1, 1, 1)
         self.first_block = StyleLayer(NUM_FEATURE_MAP[4], NUM_FEATURE_MAP[4], latent_dims)
         self.first_block_toRGB = toRGBLayer(NUM_FEATURE_MAP[4], final_resolution)
 
@@ -171,7 +207,7 @@ class Synthesis(nn.Module):
         batch_size, _ = w.shape
         
         if (batch_size != self.constant_layer.shape[0]):
-            self.constant_layer_cache = self.constant_layer.repeat(batch_size, 1, 1, 1)
+            self.constant_layer_cache = self.constant_layer.unsqueeze(0).repeat(batch_size, 1, 1, 1)
 
         x = self.constant_layer_cache
         x = self.first_block(x, w)
@@ -201,9 +237,7 @@ class Discriminator(nn.Module):
     def __init__(self, orginal_resolution):
         super(Discriminator, self).__init__()
         self.blocks = []
-        self.fromRGB = nn.Sequential(
-            nn.Conv2d(3, NUM_FEATURE_MAP[orginal_resolution], 1, 1, 'same'),
-            nn.LeakyReLU(0.2))
+        self.fromRGB = Conv2DLayer(3, NUM_FEATURE_MAP[orginal_resolution], 1, 1, 'same', activation=True)
         current_resolution = orginal_resolution
         while (current_resolution > 4):
             block = DiscriminiatorBlock(NUM_FEATURE_MAP[current_resolution], NUM_FEATURE_MAP[current_resolution//2])
@@ -212,15 +246,10 @@ class Discriminator(nn.Module):
             current_resolution = (current_resolution >> 1)
 
         self.minibatch_stddev = MinibatchStdDev()
-        self.conv = nn.Sequential(
-            nn.Conv2d(NUM_FEATURE_MAP[4] + 1, NUM_FEATURE_MAP[4], 1, 1, 'same'),
-            nn.LeakyReLU(0.2))
-        self.fc = nn.Sequential(
-            nn.Linear(NUM_FEATURE_MAP[4] * 4 * 4, NUM_FEATURE_MAP[4]),
-            nn.LeakyReLU(0.2)
-        )
+        self.conv = Conv2DLayer(NUM_FEATURE_MAP[4] + 1, NUM_FEATURE_MAP[4], 3, 1, 'same', activation=True)
+        self.fc = FullyConnectedLayer(NUM_FEATURE_MAP[4] * 4 * 4, NUM_FEATURE_MAP[4], activation = True)
         self.flatten = nn.Flatten()
-        self.out = nn.Linear(NUM_FEATURE_MAP[4], 1)
+        self.out = FullyConnectedLayer(NUM_FEATURE_MAP[4], 1)
 
     def forward(self, x):
         x = self.fromRGB(x)
