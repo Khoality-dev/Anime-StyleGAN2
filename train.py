@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
     args = parser.parse_args()
 
-    INTERACTIVE_MODE = 'google.colab' in str(get_ipython())
+    INTERACTIVE_MODE = not('google.colab' in str(get_ipython()))
     #if not interactive, save preview images
     if args.interactive_mode and INTERACTIVE_MODE:
         app = QApplication(sys.argv)
