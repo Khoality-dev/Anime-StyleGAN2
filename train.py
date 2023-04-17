@@ -21,12 +21,14 @@ except ImportError:
 import threading
 from collections import deque
 
+
 def train(mainWindow, args):
     mini_batch_size = int(BATCH_SIZE / GRAD_ACCUMULATE_FACTOR)
     dataset = Torch_Dataset(args.data_src)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size = mini_batch_size, shuffle = True)
     H, W = dataset.resolution
     batch_iter = iter(dataloader)
+    reals_list = deque(maxlen=VISUALIZATION_BATCH_SIZE) # accumulate real samples every iteration to show
 
     if not(args.train_new) and os.path.exists(args.cp_src):
          G, optimizer_G, D, optimizer_D, visual_z = load_models(args.cp_src)
@@ -46,13 +48,14 @@ def train(mainWindow, args):
         for _ in range(N_CRITICS):
             D.zero_grad()
             for _ in range(GRAD_ACCUMULATE_FACTOR):
-                real_samples = next(batch_iter).to(DEVICE)
-                z = torch.randn(size = (mini_batch_size, LATENT_SIZE)).to(DEVICE)
-
+                real_samples = next(batch_iter)
+                real_samples_copy = (real_samples.clone().requires_grad_(False).cpu().permute(0,2,3,1).numpy()  + 1 ) * 127.5
+                reals_list.extend(list(real_samples_copy))
+                z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
                 if (G.iteration % LAZY_REG_FACTOR == 0):
-                    d_loss = D_loss_r1(G, D, z, real_samples, regularization=True)
+                    d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=True)
                 else:
-                    d_loss = D_loss_r1(G, D, z, real_samples, regularization=False)
+                    d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=False)
 
                 d_loss = d_loss / GRAD_ACCUMULATE_FACTOR
                 d_loss.backward()
@@ -61,13 +64,12 @@ def train(mainWindow, args):
        
         G.zero_grad()
         for _ in range(GRAD_ACCUMULATE_FACTOR):
-            z = torch.randn(size = (mini_batch_size, LATENT_SIZE)).to(DEVICE)
-
+            z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
             g_Loss = None
             if (G.iteration % LAZY_REG_FACTOR == 0):
-                g_Loss = G_loss_pl(G, D, z, regularization=True)
+                g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=True)
             else:
-                g_Loss = G_loss_pl(G, D, z, regularization=False)
+                g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=False)
 
             g_Loss = g_Loss / GRAD_ACCUMULATE_FACTOR
             g_Loss.backward()
@@ -82,7 +84,6 @@ def train(mainWindow, args):
             with torch.no_grad():
                 zs = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
                 fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-                reals_list = list((real_samples.permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
                 static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
             mainWindow.updatePreviewImage(fakes_list, reals_list, static_fakes_list)
             mainWindow.updateDisplay()
