@@ -43,7 +43,7 @@ class FullyConnectedLayer(nn.Module):
         self.b = None
         if bias_init is not None:
             self.b = nn.Parameter(torch.full(size = [out_features,], fill_value = 1.0 * bias_init))
-        self.w_gain = 1. / np.sqrt(in_features)
+        self.w_gain = lr_multiplyer / np.sqrt(in_features)
         self.b_gain = lr_multiplyer
         
         self.activation = None
