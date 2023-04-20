@@ -29,10 +29,12 @@ class ModulatedConv2D(nn.Module):
         x = x.reshape(1, N*in_channels, H, W)
         x = functional.conv2d(x, w, stride = self.stride, padding = self.padding, groups=N)
         x = x.reshape(N, out_channels, H, W)
-        b = self.b.repeat(N, 1, 1, 1).reshape(N, -1, 1, 1)
-        x = x.add(b)
         if noise is not None:
             x = x.add(noise)
+
+        b = self.b.repeat(N, 1, 1, 1).reshape(N, -1, 1, 1)
+        x = x.add(b)
+
         x = self.activation(x) * np.sqrt(2)
         return x
 
