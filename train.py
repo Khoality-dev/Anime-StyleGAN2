@@ -40,13 +40,7 @@ def train(mainWindow, args):
         optimizer_G = torch.optim.Adam(G.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         optimizer_D = torch.optim.Adam(D.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         visual_z = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
-
-    for param in optimizer_G.param_groups:
-        param['lr'] = LEARNING_RATE / 2
-
-    for param in optimizer_D.param_groups:
-        param['lr'] = LEARNING_RATE / 2
-
+        
     G.to(DEVICE)
     D.to(DEVICE)
     while (True):
@@ -96,6 +90,8 @@ def train(mainWindow, args):
             mainWindow.updateDisplay()
             mainWindow.update_flag = False
 
+
+        G.iteration += 1
         if (G.iteration % args.cp_iter == 0):
             save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)
 
@@ -107,8 +103,6 @@ def train(mainWindow, args):
             print("Exiting...")
             return
 
-        G.iteration += 1
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -116,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--interactive-mode', action = 'store_true', dest = 'interactive_mode', default = True)
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 1000)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
-    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
+    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = 'E:/anime_dataset/d1k_256x256.h5')
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 100)
     args = parser.parse_args()
 
