@@ -6,7 +6,8 @@ BATCH_SIZE = 32
 VISUALIZATION_BATCH_SIZE = int(5*5)
 LEARNING_RATE = 0.002
 GRAD_ACCUMULATE_FACTOR = 8  # minibatch_size = BATCH_SIZE / GRAD_ACCUMULATE_FACTOR
-LAZY_REG_FACTOR = 8 # apply once every 16 minibatch
+G_LAZY_REG_FACTOR = 4 # apply once every 4 minibatch
+D_LAZY_REG_FACTOR = 8 # apply once every 16 minibatch
 N_CRITICS = 1
 
 # Generator and Discriminator
