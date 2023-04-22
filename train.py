@@ -41,11 +41,6 @@ def train(mainWindow, args):
         optimizer_D = torch.optim.Adam(D.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         visual_z = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
         
-    for param in optimizer_G.param_groups:
-        param['lr'] = LEARNING_RATE
-
-    for param in optimizer_D.param_groups:
-        param['lr'] = LEARNING_RATE
     G.to(DEVICE)
     D.to(DEVICE)
     while (True):
