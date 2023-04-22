@@ -79,7 +79,9 @@ def train(mainWindow, args):
 
         if (G.iteration % args.log_iter == 0):
             print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
-            #mainWindow.update_flag = True
+            
+        if (G.iteration % args.preview_iter == 0):
+            mainWindow.update_flag = True
 
         if (mainWindow.update_flag):
             with torch.no_grad():
@@ -113,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
     parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
+    parser.add_argument('-p', '--preview-iteration', dest = 'preview_iter', type = int, default = 10)
     args = parser.parse_args()
 
     #if not interactive, save preview images
