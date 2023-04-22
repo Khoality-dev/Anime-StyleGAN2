@@ -41,6 +41,11 @@ def train(mainWindow, args):
         optimizer_D = torch.optim.Adam(D.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         visual_z = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
         
+    for param in optimizer_G.param_groups:
+        param['lr'] = LEARNING_RATE
+
+    for param in optimizer_D.param_groups:
+        param['lr'] = LEARNING_RATE
     G.to(DEVICE)
     D.to(DEVICE)
     while (True):
@@ -79,7 +84,7 @@ def train(mainWindow, args):
 
         if (G.iteration % args.log_iter == 0):
             print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
-            mainWindow.update_flag = True
+            #mainWindow.update_flag = True
 
         if (mainWindow.update_flag):
             with torch.no_grad():
@@ -100,6 +105,7 @@ def train(mainWindow, args):
             mainWindow.save_flag = False
 
         if mainWindow.exit_flag:
+            save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)
             print("Exiting...")
             return
 
@@ -108,10 +114,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--new', action = 'store_true', dest = 'train_new', default = False)
     parser.add_argument('-i', '--interactive-mode', action = 'store_true', dest = 'interactive_mode', default = True)
-    parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 1000)
+    parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 500)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
-    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = 'E:/anime_dataset/d1k_256x256.h5')
-    parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 100)
+    parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
+    parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
     args = parser.parse_args()
 
     #if not interactive, save preview images
