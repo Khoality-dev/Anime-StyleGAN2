@@ -30,5 +30,5 @@ class Torch_Dataset(torch.utils.data.Dataset):
             image_path = os.path.join(self.root_dir, image_name)
             image = cv2.imread(image_path)
 
-        cv2.resize(image, self.resolution)
-        return torchvision.transforms.ToTensor()((image / 127.5) - 1).to(torch.float32)
+        image = cv2.resize(image, self.resolution)
+        return image
