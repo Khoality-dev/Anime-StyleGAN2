@@ -48,9 +48,10 @@ def train(mainWindow, args):
         for _ in range(N_CRITICS):
             D.zero_grad()
             for _ in range(GRAD_ACCUMULATE_FACTOR):
-                real_samples = next(batch_iter)
-                real_samples_copy = (real_samples.clone().requires_grad_(False).cpu().permute(0,2,3,1).numpy()  + 1 ) * 127.5
+                real_samples = next(batch_iter) 
+                real_samples_copy = real_samples.clone().requires_grad_(False).cpu().numpy()
                 reals_list.extend(list(real_samples_copy))
+                real_samples = real_samples.permute(0,3,1,2) / 127.5 - 1
                 z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
                 if (G.iteration % D_LAZY_REG_FACTOR == 0):
                     d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=True)
