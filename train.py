@@ -88,6 +88,8 @@ def train(mainWindow, args):
         optimizer_G.step()
 
         if (G.iteration % args.log_iter == 0):
+            sys.stdout.write("\033[K")
+            sys.stdout.flush()
             print("\r", time.ctime(time.time()), " Iteration: ",G.iteration, " | Loss G: {:.3f}".format(g_Loss.item()), " | Loss D: {:.3f}".format(d_loss.item()), " ({:.3f} sec/i)".format(time.time() - start_time), "",sep='', end='')
             
         if (G.iteration % args.preview_iter == 0):
