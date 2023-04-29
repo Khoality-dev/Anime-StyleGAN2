@@ -1,4 +1,5 @@
 import argparse
+import time
 import torch
 import sys
 from IPython import get_ipython
@@ -30,21 +31,29 @@ def train(mainWindow, args):
     batch_iter = iter(dataloader)
     reals_list = deque(maxlen=VISUALIZATION_BATCH_SIZE) # accumulate real samples every iteration to show
 
+    print("Device:", torch.cuda.get_device_name(DEVICE), end='\n\n')
+
     if not(args.train_new) and os.path.exists(args.cp_src):
         G, optimizer_G, D, optimizer_D, visual_z = load_models(args.cp_src)
     else:
-        random_seed = 1.048596
-        torch.manual_seed(random_seed)
+        print("Initialize new model...",end='')
+        torch.manual_seed(RANDOM_SEED)
         G = Generator(LATENT_SIZE, NUM_MAPPING_LAYER, H)
         D = Discriminator(H)
         optimizer_G = torch.optim.Adam(G.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         optimizer_D = torch.optim.Adam(D.parameters(), lr = LEARNING_RATE, betas = [0, 0.99])
         visual_z = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
+        print("Done!")
         
     G.to(DEVICE)
     D.to(DEVICE)
+    print("Iteration:",G.iteration)
+    print("Learning rate: ", LEARNING_RATE, end='\n\n')
+
+    print("Initilize Training Session...")
     while (True):
         real_samples = None
+        start_time = time.time()
         for _ in range(N_CRITICS):
             D.zero_grad()
             for _ in range(GRAD_ACCUMULATE_FACTOR):
@@ -79,9 +88,10 @@ def train(mainWindow, args):
         optimizer_G.step()
 
         if (G.iteration % args.log_iter == 0):
-            print("Iteration: ", G.iteration, "Loss G", g_Loss, "Loss D", d_loss)
+            print("\r", time.ctime(time.time()), " Iteration: ",G.iteration, " | Loss G: {:.3f}".format(g_Loss.item()), " | Loss D: {:.3f}".format(d_loss.item()), " ({:.3f} sec/i)".format(time.time() - start_time), "",sep='', end='')
             
         if (G.iteration % args.preview_iter == 0):
+            print()
             mainWindow.update_flag = True
 
         if (mainWindow.update_flag):
@@ -103,8 +113,8 @@ def train(mainWindow, args):
             mainWindow.save_flag = False
 
         if mainWindow.exit_flag:
-            save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)
-            print("Exiting...")
+            #save_models(args.cp_src, G, D, optimizer_G, optimizer_D, visual_z)
+            print("\nExiting...")
             return
 
 
@@ -115,8 +125,8 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 500)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
     parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
-    parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
-    parser.add_argument('-p', '--preview-iteration', dest = 'preview_iter', type = int, default = 10)
+    parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 5)
+    parser.add_argument('-p', '--preview-iteration', dest = 'preview_iter', type = int, default = 100)
     args = parser.parse_args()
 
     #if not interactive, save preview images

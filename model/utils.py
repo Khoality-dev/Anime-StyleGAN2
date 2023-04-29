@@ -3,7 +3,7 @@ import os
 
 from model.configs import *
 def save_models(save_path, G, D, optimizer_G, optimizer_D, visual_z):
-    print("Saving...",end='')
+    print("\nSaving...",end='')
     if not(os.path.exists(save_path)):
         os.makedirs(save_path)
 
