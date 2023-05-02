@@ -228,10 +228,16 @@ class Generator(nn.Module):
         self.mapping_network = MappingNetwork(latent_dims, num_mapping_network_layers)
         self.synthesis = Synthesis(latent_dims, final_resolution)
         self.pl_mean = None
+        self.w_mean = torch.zeros(size=(latent_dims,)).to(DEVICE)
         self.iteration = 0
 
-    def forward(self, z):
+    def forward(self, z, trunc_factor = 1.0):
+        N, _ = z.shape
         w = self.mapping_network(z)
+        
+        # interpolate w mean for truncation trick
+        self.w_mean = self.w_mean.lerp(w.mean(dim=0), 1e-4).detach()
+        w = self.w_mean.unsqueeze(0).repeat(N, 1).lerp(w, trunc_factor)
         y = self.synthesis(w)
         return y
 
