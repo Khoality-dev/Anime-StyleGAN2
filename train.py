@@ -34,6 +34,7 @@ def train(mainWindow, args):
 
     if not(args.train_new) and os.path.exists(args.cp_src):
         G, optimizer_G, D, optimizer_D, visual_z = load_models(args.cp_src)
+        G.w_mean = torch.zeros(size=(LATENT_SIZE,)).to(DEVICE)
     else:
         print("Initialize new model...",end='')
         torch.manual_seed(RANDOM_SEED)
@@ -98,8 +99,8 @@ def train(mainWindow, args):
         if (mainWindow.update_flag):
             with torch.no_grad():
                 zs = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
-                fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu', trunc_factor=1.0).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-                static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu', trunc_factor=0.7).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu').permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu', trunc_factor=float(args.trunc_factor)).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
             mainWindow.updatePreviewImage(fakes_list, reals_list, static_fakes_list)
             mainWindow.updateDisplay()
             mainWindow.update_flag = False
@@ -128,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 5)
     parser.add_argument('-p', '--preview-iteration', dest = 'preview_iter', type = int, default = 100)
+    parser.add_argument('-tf', '--trunc-factor', dest = 'trunc_factor', default = 0.7)
     args = parser.parse_args()
 
     #if not interactive, save preview images
