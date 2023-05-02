@@ -99,7 +99,7 @@ def train(mainWindow, args):
             with torch.no_grad():
                 zs = torch.randn(size = (VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
                 fakes_list = list((G_large_batch(G, zs, mini_batch_size, device = 'cpu', trunc_factor=1.0).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
-                static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu', trunc_factor=0.).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
+                static_fakes_list = list((G_large_batch(G, visual_z, mini_batch_size, device='cpu', trunc_factor=0.7).permute(0,2,3,1).cpu().numpy() + 1) * 127.5)
             mainWindow.updatePreviewImage(fakes_list, reals_list, static_fakes_list)
             mainWindow.updateDisplay()
             mainWindow.update_flag = False
