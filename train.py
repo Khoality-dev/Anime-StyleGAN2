@@ -34,6 +34,7 @@ def train(mainWindow, args):
 
     if not(args.train_new) and os.path.exists(args.cp_src):
         G, optimizer_G, D, optimizer_D, visual_z = load_models(args.cp_src)
+        G.w_mean = torch.zeros(size=(LATENT_SIZE,)).to(DEVICE)
     else:
         print("Initialize new model...",end='')
         torch.manual_seed(RANDOM_SEED)
