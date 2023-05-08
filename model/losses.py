@@ -6,7 +6,7 @@ def D_loss_r1(G, D, z, real_samples, regularization = False):
     fake_samples = G(z).type(real_samples.type())
     real_scores = D(real_samples)
     fake_scores = D(fake_samples)
-    main_loss = torch.mean(functional.softplus(fake_scores)) + torch.mean(functional.softplus(-real_scores))
+    main_loss = fake_scores.mean() - real_scores.mean()
     
     if not(regularization):
         return main_loss
@@ -26,7 +26,7 @@ def D_WGAN_loss_gp(G, D, z, real_samples, regularization = False):
     fake_samples = G(z).type(real_samples.type())
     real_scores = D(real_samples)
     fake_scores = D(fake_samples)
-    main_loss = functional.softplus(fake_scores).mean() + functional.softplus(-real_scores).mean()
+    main_loss = fake_scores.mean() - real_scores.mean()
 
     if (regularization == False):
         return main_loss
@@ -50,7 +50,7 @@ def G_loss(G, D, z):
 def G_loss_pl(G, D, z, regularization = False):
     fake_samples = G(z)
     fake_scores = D(fake_samples)
-    main_loss = torch.mean(functional.softplus(-fake_scores))
+    main_loss = - fake_scores.mean()
 
     if not(regularization):
         return main_loss
