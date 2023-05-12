@@ -63,6 +63,7 @@ def train(mainWindow, args):
                 reals_list.extend(list(real_samples_copy))
                 real_samples = real_samples.permute(0,3,1,2) / 127.5 - 1
                 z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
+                d_loss = None
                 with torch.cuda.amp.autocast():
                     if (G.iteration % D_LAZY_REG_FACTOR == 0):
                         d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=True)
