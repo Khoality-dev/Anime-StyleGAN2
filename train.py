@@ -34,6 +34,11 @@ def train(mainWindow, args):
 
     if not(args.train_new) and os.path.exists(args.cp_src):
         G, optimizer_G, D, optimizer_D, visual_z = load_models(args.cp_src)
+        for it in optimizer_G.param_groups:
+            it['lr'] = LEARNING_RATE
+            
+        for it in optimizer_D.param_groups:
+            it['lr'] = LEARNING_RATE
     else:
         print("Initialize new model...",end='')
         torch.manual_seed(RANDOM_SEED)
@@ -46,6 +51,8 @@ def train(mainWindow, args):
         
     G = G.to(DEVICE)
     D = D.to(DEVICE)
+    
+
     scaler_G = torch.cuda.amp.GradScaler()
     scaler_D = torch.cuda.amp.GradScaler()
     print("Iteration:",G.iteration)
