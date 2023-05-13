@@ -16,9 +16,10 @@ def D_loss_r1(G, D, z, real_samples, regularization = False):
     real_scores = D(temp_samples)
     grads = torch.autograd.grad(
         outputs=torch.sum(real_scores),
-        inputs=temp_samples)
+        inputs=temp_samples,
+        create_graph=True)[0]
     
-    regularization = 0.5 * torch.mean(torch.sum(torch.square(grads[0]), dim = [1,2,3]))
+    regularization = 0.5 * torch.mean(torch.sum(torch.square(grads), dim = [1,2,3]))
     return main_loss + configs.R1_GAMMA * regularization
 
 def D_WGAN_loss_gp(G, D, z, real_samples, regularization = False):
@@ -38,7 +39,8 @@ def D_WGAN_loss_gp(G, D, z, real_samples, regularization = False):
     mixed_score = D(inter_images)
     grad = torch.autograd.grad(
         outputs=mixed_score.sum(),
-        inputs=inter_images)
+        inputs=inter_images,
+        create_graph=True)
     gp = (grad[0].norm() - 1).square().mean()
     return main_loss + 10 * gp
 
@@ -64,9 +66,10 @@ def G_loss_pl(G, D, z, regularization = False):
     pl_noise = torch.randn_like(fake_samples) / H
     pl_grads = torch.autograd.grad(
         outputs=(fake_samples * pl_noise).sum(),
-        inputs = w_samples
+        inputs = w_samples,
+        create_graph=True
     )[0]
-    pl_lengths = pl_grads.square().sum(1).sqrt()
+    pl_lengths = pl_grads.square().mean(1).sqrt()
     pl_mean = None
     if (G.pl_mean is not None):
         pl_mean = G.pl_mean.lerp(pl_lengths.mean(), configs.PL_DECAY)

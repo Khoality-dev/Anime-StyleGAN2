@@ -5,10 +5,10 @@ RANDOM_SEED = 1.048596 # set to time(0) for none seed
 H, W = 256, 256
 BATCH_SIZE = 32
 VISUALIZATION_BATCH_SIZE = int(5*5)
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.0002
 GRAD_ACCUMULATE_FACTOR = 8  # minibatch_size = BATCH_SIZE / GRAD_ACCUMULATE_FACTOR
-G_LAZY_REG_FACTOR = 1 # apply once every 4 minibatch
-D_LAZY_REG_FACTOR = 1 # apply once every 16 minibatch
+G_LAZY_REG_FACTOR = 4 # apply once every 4 minibatch
+D_LAZY_REG_FACTOR = 8 # apply once every 8 minibatch
 N_CRITICS = 1
 
 # Generator and Discriminator

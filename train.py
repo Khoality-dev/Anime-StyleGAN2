@@ -34,6 +34,11 @@ def train(mainWindow, args):
 
     if not(args.train_new) and os.path.exists(args.cp_src):
         G, optimizer_G, D, optimizer_D, visual_z = load_models(args.cp_src)
+        for it in optimizer_G.param_groups:
+            it['lr'] = LEARNING_RATE
+
+        for it in optimizer_D.param_groups:
+            it['lr'] = LEARNING_RATE
     else:
         print("Initialize new model...",end='')
         torch.manual_seed(RANDOM_SEED)
@@ -46,8 +51,15 @@ def train(mainWindow, args):
         
     G = G.to(DEVICE)
     D = D.to(DEVICE)
+    
+
+    scaler_G = torch.cuda.amp.GradScaler()
+    scaler_D = torch.cuda.amp.GradScaler()
     print("Iteration:",G.iteration)
-    print("Learning rate: ", LEARNING_RATE, end='\n\n')
+
+    for it in optimizer_G.param_groups:
+        print("Learning rate: ", it['lr'], end='\n\n')
+        break
 
     print("Initilize Training Session...")
     while (True):
@@ -61,30 +73,35 @@ def train(mainWindow, args):
                 reals_list.extend(list(real_samples_copy))
                 real_samples = real_samples.permute(0,3,1,2) / 127.5 - 1
                 z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
-                if (G.iteration % D_LAZY_REG_FACTOR == 0):
-                    d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=True)
-                else:
-                    d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=False)
+                d_loss = None
+                with torch.cuda.amp.autocast():
+                    if (G.iteration % D_LAZY_REG_FACTOR == 0):
+                        d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=True)
+                    else:
+                        d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=False)
 
-                d_loss = d_loss / GRAD_ACCUMULATE_FACTOR
-                d_loss.backward()
-
-            optimizer_D.step()
+                    d_loss = d_loss / GRAD_ACCUMULATE_FACTOR
+                scaler_D.scale(d_loss).backward()
+            
+            scaler_D.step(optimizer_D)
+            scaler_D.update()
        
         G.zero_grad()
         D.zero_grad()
         for _ in range(GRAD_ACCUMULATE_FACTOR):
             z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
             g_Loss = None
-            if (G.iteration % G_LAZY_REG_FACTOR == 0):
-                g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=True)
-            else:
-                g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=False)
+            with torch.cuda.amp.autocast():
+                if (G.iteration % G_LAZY_REG_FACTOR == 0):
+                    g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=True)
+                else:
+                    g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=False)
 
-            g_Loss = g_Loss / GRAD_ACCUMULATE_FACTOR
-            g_Loss.backward()
+                g_Loss = g_Loss / GRAD_ACCUMULATE_FACTOR
+            scaler_G.scale(g_Loss).backward()
 
-        optimizer_G.step()
+        scaler_G.step(optimizer_G)
+        scaler_G.update()
 
         if (G.iteration % args.log_iter == 0):
             sys.stdout.write("\033[K")
@@ -123,7 +140,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--new', action = 'store_true', dest = 'train_new', default = False)
     parser.add_argument('-i', '--interactive-mode', action = 'store_true', dest = 'interactive_mode', default = True)
-    parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 500)
+    parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 1000)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
     parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 5)
