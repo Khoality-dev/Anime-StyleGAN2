@@ -69,7 +69,7 @@ def G_loss_pl(G, D, z, regularization = False):
         inputs = w_samples,
         create_graph=True
     )[0]
-    pl_lengths = pl_grads.square().sum(1).sqrt()
+    pl_lengths = pl_grads.square().mean(1).sqrt()
     pl_mean = None
     if (G.pl_mean is not None):
         pl_mean = G.pl_mean.lerp(pl_lengths.mean(), configs.PL_DECAY)
