@@ -143,7 +143,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 1000)
     parser.add_argument('-cd', '--checkpoint-dir', dest = 'cp_src', type = str, default = 'pretrained/anime')
     parser.add_argument('-d', '--data-dir', dest = 'data_src', type = str, default = '/media/khoa/LHC/anime_dataset/d1k_256x256.h5')
-    parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 5)
+    parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 1)
     parser.add_argument('-p', '--preview-iteration', dest = 'preview_iter', type = int, default = 100)
     parser.add_argument('-tf', '--trunc-factor', dest = 'trunc_factor', default = 0.7)
     args = parser.parse_args()
