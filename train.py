@@ -53,8 +53,6 @@ def train(mainWindow, args):
     D = D.to(DEVICE)
     
 
-    scaler_G = torch.cuda.amp.GradScaler()
-    scaler_D = torch.cuda.amp.GradScaler()
     print("Iteration:",G.iteration)
 
     for it in optimizer_G.param_groups:
@@ -74,34 +72,33 @@ def train(mainWindow, args):
                 real_samples = real_samples.permute(0,3,1,2) / 127.5 - 1
                 z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
                 d_loss = None
-                with torch.cuda.amp.autocast():
-                    if (G.iteration % D_LAZY_REG_FACTOR == 0):
-                        d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=True)
-                    else:
-                        d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=False)
+                if (G.iteration % D_LAZY_REG_FACTOR == 0):
+                    d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=True)
+                else:
+                    d_loss = D_loss_r1(G, D, z.to(DEVICE), real_samples.to(DEVICE), regularization=False)
 
-                    d_loss = d_loss / GRAD_ACCUMULATE_FACTOR
-                scaler_D.scale(d_loss).backward()
+                d_loss = d_loss / GRAD_ACCUMULATE_FACTOR
+                
+                d_loss.backward()
             
-            scaler_D.step(optimizer_D)
-            scaler_D.update()
+            optimizer_D.step()
        
         G.zero_grad()
         D.zero_grad()
         for _ in range(GRAD_ACCUMULATE_FACTOR):
             z = torch.randn(size = (mini_batch_size, LATENT_SIZE))
             g_Loss = None
-            with torch.cuda.amp.autocast():
-                if (G.iteration % G_LAZY_REG_FACTOR == 0):
-                    g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=True)
-                else:
-                    g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=False)
+            if (G.iteration % G_LAZY_REG_FACTOR == 0):
+                g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=True)
+            else:
+                g_Loss = G_loss_pl(G, D, z.to(DEVICE), regularization=False)
 
-                g_Loss = g_Loss / GRAD_ACCUMULATE_FACTOR
-            scaler_G.scale(g_Loss).backward()
+            g_Loss = g_Loss / GRAD_ACCUMULATE_FACTOR
+            
+            g_Loss.backward()
+            
 
-        scaler_G.step(optimizer_G)
-        scaler_G.update()
+        optimizer_G.step()
 
         if (G.iteration % args.log_iter == 0):
             sys.stdout.write("\033[K")
