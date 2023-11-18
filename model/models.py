@@ -220,7 +220,6 @@ class Synthesis(nn.Module):
             x, x_rgb = self.blocks[i](x, w)
             rgb = rgb.add(x_rgb)
         
-        rgb = self.tanh(rgb)
         return rgb
 
 class Generator(nn.Module):
