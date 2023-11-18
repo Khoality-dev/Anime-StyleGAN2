@@ -147,7 +147,6 @@ def train(mainWindow, args):
                     .permute(0, 2, 3, 1)
                     .cpu()
                     .numpy()
-                    * 255.0
                 )
                 static_fakes_list = list(
                     (
