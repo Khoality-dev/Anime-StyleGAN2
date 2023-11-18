@@ -79,7 +79,7 @@ def train(mainWindow, args):
                     real_samples.clone().requires_grad_(False).cpu().numpy()
                 )
                 reals_list.extend(list(real_samples_copy))
-                real_samples = real_samples.permute(0, 3, 1, 2) / 255.0
+                real_samples = real_samples.permute(0, 3, 1, 2) / 127.5 - 1
                 z = torch.randn(size=(mini_batch_size, LATENT_SIZE))
                 d_loss = None
                 if G.iteration % D_LAZY_REG_FACTOR == 0:
@@ -141,28 +141,31 @@ def train(mainWindow, args):
             with torch.no_grad():
                 zs = torch.randn(size=(VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
                 fakes_list = list(
-                    functional.sigmoid(
-                        G_large_batch(G, zs, mini_batch_size, device="cpu")
-                    )
+                    ((G_large_batch(G, zs, mini_batch_size, device="cpu") + 1) * 127.5)
+                    .clamp(0, 255)
                     .permute(0, 2, 3, 1)
                     .cpu()
                     .numpy()
                     * 255.0
                 )
                 static_fakes_list = list(
-                    functional.sigmoid(
-                        G_large_batch(
-                            G,
-                            visual_z,
-                            mini_batch_size,
-                            device="cpu",
-                            trunc_factor=float(args.trunc_factor),
+                    (
+                        (
+                            G_large_batch(
+                                G,
+                                visual_z,
+                                mini_batch_size,
+                                device="cpu",
+                                trunc_factor=float(args.trunc_factor),
+                            )
+                            + 1
                         )
+                        * 127.5
                     )
+                    .clamp(0, 255)
                     .permute(0, 2, 3, 1)
                     .cpu()
                     .numpy()
-                    * 255.0
                 )
             mainWindow.updatePreviewImage(fakes_list, reals_list, static_fakes_list)
             mainWindow.updateDisplay()
