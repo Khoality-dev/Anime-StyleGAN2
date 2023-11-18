@@ -141,7 +141,7 @@ def train(mainWindow, args):
             with torch.no_grad():
                 zs = torch.randn(size=(VISUALIZATION_BATCH_SIZE, LATENT_SIZE))
                 fakes_list = list(
-                    functional.softplus(
+                    functional.sigmoid(
                         G_large_batch(G, zs, mini_batch_size, device="cpu")
                     )
                     .permute(0, 2, 3, 1)
@@ -150,7 +150,7 @@ def train(mainWindow, args):
                     * 255.0
                 )
                 static_fakes_list = list(
-                    functional.softplus(
+                    functional.sigmoid(
                         G_large_batch(
                             G,
                             visual_z,
