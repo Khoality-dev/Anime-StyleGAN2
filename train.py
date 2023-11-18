@@ -143,6 +143,7 @@ def train(mainWindow, args):
                 fakes_list = list(
                     ((G_large_batch(G, zs, mini_batch_size, device="cpu") + 1) * 127.5)
                     .clamp(0, 255)
+                    .to(torch.uint8)
                     .permute(0, 2, 3, 1)
                     .cpu()
                     .numpy()
@@ -163,6 +164,7 @@ def train(mainWindow, args):
                         * 127.5
                     )
                     .clamp(0, 255)
+                    .to(torch.uint8)
                     .permute(0, 2, 3, 1)
                     .cpu()
                     .numpy()
