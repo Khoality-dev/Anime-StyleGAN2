@@ -1,4 +1,3 @@
-# References: https://blade6570.github.io/soumyatripathy/hdf5_blog.html
 import matplotlib.pyplot as plt 
 import cv2
 import numpy as np
