@@ -1,0 +1,4 @@
+venv/
+pretrained/
+.vscode/
+.github/

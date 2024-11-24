@@ -25,7 +25,7 @@ from collections import deque
 
 
 def train(mainWindow, args):
-    mini_batch_size = int(BATCH_SIZE / GRAD_ACCUMULATE_FACTOR)
+    mini_batch_size = int(args.batch_size / GRAD_ACCUMULATE_FACTOR)
     dataset = Torch_Dataset(args.data_src)
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=mini_batch_size, shuffle=True
@@ -192,11 +192,14 @@ if __name__ == "__main__":
         "-n", "--new", action="store_true", dest="train_new", default=False
     )
     parser.add_argument(
+        "-b", "--batch-size", dest="batch_size", type=int, default=4
+    )
+    parser.add_argument(
         "-i",
         "--interactive-mode",
         action="store_true",
         dest="interactive_mode",
-        default=True,
+        default=False,
     )
     parser.add_argument(
         "-c", "--checkpoint-iteration", dest="cp_iter", type=int, default=1000
@@ -209,7 +212,7 @@ if __name__ == "__main__":
         "--data-dir",
         dest="data_src",
         type=str,
-        default="/media/khoa/LHC/anime_dataset/d1k_256x256.h5",
+        default="dataset/d1k_256x256.h5",
     )
     parser.add_argument("-l", "--log", dest="log_iter", type=int, default=1)
     parser.add_argument(
