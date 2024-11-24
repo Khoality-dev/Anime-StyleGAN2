@@ -1,7 +1,7 @@
 import torch
 
 # Hyperparameters
-RANDOM_SEED = 1.048596  # set to time(0) for none seed
+RANDOM_SEED = 1234  # set to time(0) for none seed
 H, W = 256, 256
 BATCH_SIZE = 4
 VISUALIZATION_BATCH_SIZE = int(5 * 5)
