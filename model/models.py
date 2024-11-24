@@ -91,6 +91,8 @@ class Conv2DLayer(nn.Module):
         if self.activation is not None:
             act_gain = np.sqrt(2) * gain #LeakyRelu gain * layer gain
             x = self.activation(x) * act_gain
+        else:
+            x = x * gain
 
         return x
 
@@ -203,8 +205,6 @@ class Synthesis(nn.Module):
             block = StyleBlock(NUM_FEATURE_MAP[current_resolution/2], NUM_FEATURE_MAP[current_resolution], latent_dims, final_resolution)
             self.blocks.append(block)
             self.add_module("style_block_"+str(NUM_FEATURE_MAP[current_resolution])+"x"+str(current_resolution)+"x"+str(current_resolution), block)
-
-        self.tanh = nn.Tanh()
 
     def forward(self, w):
         batch_size, _ = w.shape
