@@ -14,7 +14,7 @@ class ModulatedConv2D(nn.Module):
         self.w = nn.Parameter(torch.randn(size = (out_channels, in_channels, kernel_size, kernel_size)))
         self.w_gain = 1. / np.sqrt(in_channels * kernel_size * kernel_size)
         self.b = nn.Parameter(torch.zeros(size = (out_channels,)))
-        self.activation = nn.LeakyReLU(0.2)
+        self.activation = nn.LeakyReLU()
         self.stride = stride
         self.padding = padding
 
@@ -51,7 +51,7 @@ class FullyConnectedLayer(nn.Module):
         
         self.activation = None
         if (activation):
-            self.activation = nn.LeakyReLU(0.2)
+            self.activation = nn.LeakyReLU()
 
     def forward(self, x):
         w = self.w * self.w_gain
@@ -82,7 +82,7 @@ class Conv2DLayer(nn.Module):
 
         self.activation = None
         if activation:
-            self.activation = nn.LeakyReLU(0.2)
+            self.activation = nn.LeakyReLU()
     
     def forward(self, x, gain = 1.0):
         w = self.w * self.w_gain
@@ -160,11 +160,19 @@ class MinibatchStdDev(nn.Module):
         super(MinibatchStdDev, self).__init__()
 
     def forward(self, x): 
-        N, C, H, W = x.shape #NxCxHxW
-        y = x.std(dim = 0) #CxHxW
-        y = y.mean()    #1
-        y = y.repeat(N,1,H,W) #Nx1xHxW
-        x = torch.cat([x,y], dim = 1) #NxC+1xHxW
+        N, C, H, W = x.shape
+        F = 1
+        G = 4
+        c = C // F
+
+        y = x.reshape(4, -1, F, c, H, W)    # [GnFcHW] Split minibatch N into n groups of size G, and channels C into F groups of size c.
+        y = y - y.mean(dim=0)               # [GnFcHW] Subtract mean over group.
+        y = y.square().mean(dim=0)          # [nFcHW]  Calc variance over group.
+        y = (y + 1e-8).sqrt()               # [nFcHW]  Calc stddev over group.
+        y = y.mean(dim=[2,3,4])             # [nF]     Take average over channels and pixels.
+        y = y.reshape(-1, F, 1, 1)          # [nF11]   Add missing dimensions.
+        y = y.repeat(G, 1, H, W)            # [NFHW]   Replicate over group and pixels.
+        x = torch.cat([x, y], dim=1)        # [NCHW]   Append to input as new channels.
         return x
 
 class DiscriminiatorBlock(nn.Module):

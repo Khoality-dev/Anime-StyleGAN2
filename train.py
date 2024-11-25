@@ -99,6 +99,9 @@ def train(mainWindow, args):
 
                 d_loss.backward()
 
+            for p in D.parameters():
+                if p.grad is not None:
+                    torch.nan_to_num(p.grad, nan=0, posinf=1e5, neginf=-1e5, out=p.grad)
             optimizer_D.step()
 
         G.zero_grad()
@@ -114,6 +117,10 @@ def train(mainWindow, args):
             g_Loss = g_Loss / GRAD_ACCUMULATE_FACTOR
 
             g_Loss.backward()
+        
+        for p in G.parameters():
+            if p.grad is not None:
+                torch.nan_to_num(p.grad, nan=0, posinf=1e5, neginf=-1e5, out=p.grad)
 
         optimizer_G.step()
 
